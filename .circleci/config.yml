@@ -49,8 +49,12 @@ jobs:
                     rm -rf $HUBPATH
                     rm -rf hub-linux-amd64-*.tgz
                     RESPONSE=$(curl "https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/pulls?state=closed&base=dev" -H "Authorization: token ${GITHUB_TOKEN}")
-                    BODY=$(echo $RESPONSE | jq '.[0].body')
-                    hub pull-request -b master -h $CIRCLECI_USER:dev -m "dev -> master" -m $BODY
+
+                    echo $(echo $RESPONSE | jq -r '.[0].title')" (dev -> master)" > message
+                    echo "" >> message
+                    echo $RESPONSE | jq -r '.[0].body' >> message
+
+                    hub pull-request -b master -h $CIRCLECI_USER:dev -F message
 
 workflows:
     version_branch:
