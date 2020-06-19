@@ -50,14 +50,7 @@ jobs:
             - run: 
                 name: Create Pull Request
                 command: |
-#                    RESPONSE=$(curl "https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/pulls?state=closed&base=dev" -H "Authorization: token ${GITHUB_TOKEN}")
-
                     hub pr show -f %t" (dev -> master)"%n%n%b $(hub pr list -s closed -b master -L 1 -f %I) > message
-
-#                    echo $(echo $RESPONSE | jq -r '.[0].title')" (dev -> master)" > message
-#                    echo "" >> message
-#                    echo $RESPONSE | jq -r '.[0].body' >> message
-
                     hub pull-request -b master -h $CIRCLECI_USER:$CIRCLE_BRANCH -F message
 
 workflows:
