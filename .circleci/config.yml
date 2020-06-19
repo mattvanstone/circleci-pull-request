@@ -1,0 +1,55 @@
+version: 2.1
+
+orbs:
+
+    jq: circleci/jq@1.9.1
+    hub: yasuhiroki/hub@0.0.1
+
+aliases:
+
+    - &prod-context
+      context: auth-token
+
+    - &docker_container
+      docker:
+        - image: cimg/base:2020.01
+
+    - &filter_dev
+      filters:
+        branches:
+            only:
+                - dev
+
+jobs:
+    echo_envvars:
+        <<: *docker_container
+        description: echo required variables
+        steps:
+            - run:
+                command: |
+                    echo "echo-ing required vars"
+                    echo "GITHUB_TOKEN: ${GITHUB_TOKEN}"
+    create_github_pr:
+        <<: *docker_container
+        description: Create a pull request for the next branch
+        steps:
+            - jq/install
+            - hub/install
+            - checkout
+            - run: 
+                command: |
+                    RESPONSE=$(curl "https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/pulls?state=closed&base=dev" -H "Authorization: token 92e52ea133e755c77d59bc4f6156727bfab3bd75")
+                    BODY=$(echo $RESPONSE | jq '.[0].body')
+                    hub pull-request -base master -m "dev -> master" -m $BODY
+
+workflows:
+    version_branch:
+        jobs:
+            - echo_envvars:
+                <<: *prod-context
+                <<: *filter_dev
+            - create_github_pr:
+                <<: *prod-context
+                <<: *filter_dev
+                requires:
+                    - echo_envvars
