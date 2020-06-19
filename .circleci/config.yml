@@ -3,7 +3,6 @@ version: 2.1
 orbs:
 
     jq: circleci/jq@1.9.1
-    hub: yasuhiroki/hub@0.0.1
 
 aliases:
 
@@ -34,10 +33,21 @@ jobs:
         description: Create a pull request for the next branch
         steps:
             - jq/install
-            - hub/install
             - checkout
             - run: 
                 command: |
+                    echo "echo-ing required vars"
+                    echo "GITHUB_TOKEN: ${GITHUB_TOKEN}"
+                    wget $(curl -s https://api.github.com/repos/github/hub/releases/latest | grep -o 'https://.*hub-linux-amd64.*tgz')
+                    tar zxf hub-linux-amd64-*.tgz
+                    HUBPATH=$(find . -maxdepth 1 -type d | sort | grep hub-linux)
+                    if which sudo > /dev/null; then
+                        sudo $HUBPATH/install
+                    else
+                        $HUBPATH/install
+                    fi
+                    rm -rf $HUBPATH
+                    rm -rf hub-linux-amd64-*.tgz
                     RESPONSE=$(curl "https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/pulls?state=closed&base=dev" -H "Authorization: token 92e52ea133e755c77d59bc4f6156727bfab3bd75")
                     BODY=$(echo $RESPONSE | jq '.[0].body')
                     hub pull-request -base master -m "dev -> master" -m $BODY
