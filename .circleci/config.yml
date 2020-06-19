@@ -34,10 +34,9 @@ jobs:
         steps:
             - jq/install
             - checkout
-            - run: 
+            - run:
+                name: Setup GitHub hub
                 command: |
-                    echo "echo-ing required vars"
-                    echo "GITHUB_TOKEN: ${GITHUB_TOKEN}"
                     wget $(curl -s https://api.github.com/repos/github/hub/releases/latest | grep -o 'https://.*hub-linux-amd64.*tgz')
                     tar zxf hub-linux-amd64-*.tgz
                     HUBPATH=$(find . -maxdepth 1 -type d | sort | grep hub-linux)
@@ -48,13 +47,11 @@ jobs:
                     fi
                     rm -rf $HUBPATH
                     rm -rf hub-linux-amd64-*.tgz
-                    RESPONSE=$(curl "https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/pulls?state=closed&base=dev" -H "Authorization: token ${GITHUB_TOKEN}")
-
-                    echo $(echo $RESPONSE | jq -r '.[0].title')" (dev -> master)" > message
-                    echo "" >> message
-                    echo $RESPONSE | jq -r '.[0].body' >> message
-
-                    hub pull-request -b master -h $CIRCLECI_USER:dev -F message
+            - run: 
+                name: Create Pull Request
+                command: |
+                    hub pr show -f %t" ($CIRCLE_BRANCH -> master)"%n%n%b $(hub pr list -s closed -b $CIRCLE_BRANCH -L 1 -f %I) > message
+                    hub pull-request -b master -h $CIRCLECI_USER:$CIRCLE_BRANCH -F message
 
 workflows:
     version_branch:
@@ -67,3 +64,8 @@ workflows:
                 <<: *filter_dev
                 requires:
                     - echo_envvars
+                    - prod_approval
+            - prod_approval:
+                type: approval
+                requires:
+                  - echo_envvars
