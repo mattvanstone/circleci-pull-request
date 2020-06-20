@@ -33,7 +33,6 @@ jobs:
         description: Create a pull request for the next branch
         steps:
             - jq/install
-            - checkout
             - run:
                 name: Setup GitHub hub
                 command: |
@@ -47,6 +46,7 @@ jobs:
                     fi
                     rm -rf $HUBPATH
                     rm -rf hub-linux-amd64-*.tgz
+            - checkout
             - run: 
                 name: Create Pull Request
                 command: |
@@ -56,7 +56,7 @@ jobs:
                       hub pull-request -b master -h $CIRCLECI_USER:$CIRCLE_BRANCH -F message
                     else
                       jq -Rs --rawfile body message '{"body":$body}' message > message.json
-                      hub api repos/$CIRCLECI_USER/$CIRCLECI_REPO/issues/$PULLREQUEST/comments -F body --input message.json
+                      hub api repos/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/issues/$PULLREQUEST/comments -F body --input message.json
                     fi
 
 workflows:
