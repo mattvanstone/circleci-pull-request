@@ -51,7 +51,13 @@ jobs:
                 name: Create Pull Request
                 command: |
                     hub pr show -f %t" ($CIRCLE_BRANCH -> master)"%n%n%b $(hub pr list -s closed -b $CIRCLE_BRANCH -L 1 -f %I) > message
-                    hub pull-request -b master -h $CIRCLECI_USER:$CIRCLE_BRANCH -F message
+                    PULLREQUEST=$(hub pr list -s open -b master -h $CIRCLE_BRANCH -L1 -f %I)
+                    if [ -z "${PULLREQUEST}" ]; then
+                      hub pull-request -b master -h $CIRCLECI_USER:$CIRCLE_BRANCH -F message
+                    else
+                      jq -Rs --rawfile body message '{"body":$body}' message > message.json
+                      hub api repos/$CIRCLECI_USER/$CIRCLECI_REPO/issues/$PULLREQUEST/comments -F body --input message.json
+                    fi
 
 workflows:
     version_branch:
