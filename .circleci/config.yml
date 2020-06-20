@@ -50,11 +50,12 @@ jobs:
             - run: 
                 name: Create Pull Request
                 command: |
-                    hub pr show -f %t" ($CIRCLE_BRANCH -> master)"%n%n%b $(hub pr list -s closed -b $CIRCLE_BRANCH -L 1 -f %I) > message
                     PULLREQUEST=$(hub pr list -s open -b master -h $CIRCLE_BRANCH -L1 -f %I)
                     if [ -z "${PULLREQUEST}" ]; then
+                      hub pr show -f %t" ($CIRCLE_BRANCH -> master)"%n%n%b $(hub pr list -s closed -b $CIRCLE_BRANCH -L 1 -f %I) > message
                       hub pull-request -b master -h $CIRCLECI_USER:$CIRCLE_BRANCH -F message
                     else
+                      hub pr show -f "Merged #"%I": "%t%n%n%b $(hub pr list -s closed -b $CIRCLE_BRANCH -L 1 -f %I) > message
                       jq -Rs --rawfile body message '{"body":$body}' message > message.json
                       hub api repos/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/issues/$PULLREQUEST/comments -F body --input message.json
                     fi
