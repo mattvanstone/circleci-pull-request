@@ -53,7 +53,7 @@ jobs:
                     PULLREQUEST=$(hub pr list -s open -b master -h $CIRCLE_BRANCH -L1 -f %I)
                     if [ -z "${PULLREQUEST}" ]; then
                       hub pr show -f %t" ($CIRCLE_BRANCH -> master)"%n%n%b $(hub pr list -s closed -b $CIRCLE_BRANCH -L 1 -f %I) > message
-                      hub pull-request -b master -h $CIRCLECI_USER:$CIRCLE_BRANCH -F message
+                      hub pull-request -b master -h $CIRCLECI_USER:$CIRCLE_BRANCH -F message -d
                     else
                       hub pr show -f "Merged #"%I": "%t%n%n%b $(hub pr list -s closed -b $CIRCLE_BRANCH -L 1 -f %I) > message
                       jq -Rs --rawfile body message '{"body":$body}' message > message.json
