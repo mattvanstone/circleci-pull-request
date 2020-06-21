@@ -1,6 +1,7 @@
 version: 2.1
 
 orbs:
+    hub: mattvanstone/hub@dev:alpha
     jq: circleci/jq@1.9.1
 
 aliases:
@@ -36,19 +37,7 @@ jobs:
             type: string
         steps:
             - jq/install
-            - run:
-                name: Setup GitHub hub
-                command: |
-                    wget $(curl -s https://api.github.com/repos/github/hub/releases/latest | grep -o 'https://.*hub-linux-amd64.*tgz')
-                    tar zxf hub-linux-amd64-*.tgz
-                    HUBPATH=$(find . -maxdepth 1 -type d | sort | grep hub-linux)
-                    if which sudo > /dev/null; then
-                        sudo $HUBPATH/install
-                    else
-                        $HUBPATH/install
-                    fi
-                    rm -rf $HUBPATH
-                    rm -rf hub-linux-amd64-*.tgz
+            - hub/install
             - checkout
             - run: 
                 name: Create Pull Request
