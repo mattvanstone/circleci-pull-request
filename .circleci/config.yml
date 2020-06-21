@@ -30,6 +30,10 @@ jobs:
     create_github_pr:
         <<: *docker_container
         description: Create a pull request for the next branch
+        parameters:
+          base:
+            description: The name of the branch to use as the base for the pull request
+            type: string
         steps:
             - jq/install
             - run:
