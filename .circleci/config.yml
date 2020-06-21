@@ -1,11 +1,9 @@
 version: 2.1
 
 orbs:
-
     jq: circleci/jq@1.9.1
 
 aliases:
-
     - &prod-context
       context: auth-token
 
@@ -28,6 +26,7 @@ jobs:
                 command: |
                     echo "echo-ing required vars"
                     echo "GITHUB_TOKEN: ${GITHUB_TOKEN}"
+
     create_github_pr:
         <<: *docker_container
         description: Create a pull request for the next branch
@@ -50,10 +49,10 @@ jobs:
             - run: 
                 name: Create Pull Request
                 command: |
-                    PULLREQUEST=$(hub pr list -s open -b master -h $CIRCLE_BRANCH -L1 -f %I)
+                    PULLREQUEST=$(hub pr list -s open -b << parameters.base >> -h $CIRCLE_BRANCH -L1 -f %I)
                     if [ -z "${PULLREQUEST}" ]; then
-                      hub pr show -f %t" ($CIRCLE_BRANCH -> master)"%n%n%b $(hub pr list -s closed -b $CIRCLE_BRANCH -L 1 -f %I) > message
-                      hub pull-request -b master -h $CIRCLECI_USER:$CIRCLE_BRANCH -F message -d
+                      hub pr show -f %t" ($CIRCLE_BRANCH -> << parameters.base >>)"%n%n%b $(hub pr list -s closed -b $CIRCLE_BRANCH -L 1 -f %I) > message
+                      hub pull-request -b << parameters.base >> -h $CIRCLECI_USER:$CIRCLE_BRANCH -F message -d
                     else
                       hub pr show -f "Merged #"%I": "%t%n%n%b $(hub pr list -s closed -b $CIRCLE_BRANCH -L 1 -f %I) > message
                       jq -Rs --rawfile body message '{"body":$body}' message > message.json
@@ -69,10 +68,11 @@ workflows:
             - create_github_pr:
                 <<: *prod-context
                 <<: *filter_dev
+                base: master
                 requires:
                     - echo_envvars
                     - prod_approval
-            - prod_approval:
-                type: approval
-                requires:
-                  - echo_envvars
+            # - prod_approval:
+            #     type: approval
+            #     requires:
+            #       - echo_envvars
