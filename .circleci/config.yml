@@ -75,7 +75,7 @@ workflows:
                 base: master
                 requires:
                     - echo_envvars
-                    - prod_approval
+                    #- prod_approval
             # - prod_approval:
             #     type: approval
             #     requires:
