@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-    hub: mattvanstone/hub@0.1.0
+    hub: mattvanstone/hub@0.2.0
     jq: circleci/jq@1.9.1
 
 aliases:
