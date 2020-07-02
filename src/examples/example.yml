@@ -1,0 +1,14 @@
+description: |
+  Run hub release create command
+usage:
+  version: 2.1
+  orbs:
+    hub: mattvanstone/hub@dev:alpha
+  jobs:
+    release:
+      docker:
+        - image: circleci/node:latest
+      steps:
+        - checkout
+        - hub/install
+        - run: timeout 30 hub release create -d -m latest -t release v0.0.1

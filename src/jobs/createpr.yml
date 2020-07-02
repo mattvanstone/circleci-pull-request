@@ -1,0 +1,25 @@
+description:
+  Create a pull request for the next branch
+executor:
+  default
+parameters:
+  base:
+    description: The name of the branch to use as the base for the pull request
+    type: string
+steps:
+  - checktoken
+  - jq/install
+  - hub/install
+  - checkout
+  - run: 
+      name: Create Pull Request
+      command: |
+          PULLREQUEST=$(hub pr list -s open -b << parameters.base >> -h $CIRCLE_BRANCH -L1 -f %I)
+          if [ -z "${PULLREQUEST}" ]; then
+            hub pr show -f %t" ($CIRCLE_BRANCH -> << parameters.base >>)"%n%n%b $(hub pr list -s closed -b $CIRCLE_BRANCH -L 1 -f %I) > message
+            hub pull-request -b << parameters.base >> -h $CIRCLECI_USER:$CIRCLE_BRANCH -F message -d
+          else
+            hub pr show -f "Merged #"%I": "%t%n%n%b $(hub pr list -s closed -b $CIRCLE_BRANCH -L 1 -f %I) > message
+            jq -Rs --rawfile body message '{"body":$body}' message > message.json
+            hub api repos/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/issues/$PULLREQUEST/comments -F body --input message.json
+          fi

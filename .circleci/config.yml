@@ -1,71 +1,93 @@
 version: 2.1
-
 orbs:
-    hub: mattvanstone/hub@0.2.0
-    jq: circleci/jq@1.9.1
-
+  orb-tools: circleci/orb-tools@8.27.4
+  hub: 'mattvanstone/github@dev:alpha'
 aliases:
-    - &prod-context
-      context: auth-token
-
-    - &docker_container
-      docker:
-        - image: cimg/base:2020.01
-
-    - &filter_dev
-      filters:
-        branches:
-            only:
-                - dev
-
+  - &orb_name
+    orb-name: mattvanstone/github
+  - &ssh_fingerprint
+    ssh-fingerprints: 87:b9:81:b8:6c:86:6c:46:0c:65:20:72:53:09:e5:55
 jobs:
-    echo_envvars:
-        <<: *docker_container
-        description: echo required variables
-        steps:
-            - run:
-                command: |
-                    echo "echo-ing required vars"
-                    echo "GITHUB_TOKEN: ${GITHUB_TOKEN}"
-
-    create_github_pr:
-        <<: *docker_container
-        description: Create a pull request for the next branch
-        parameters:
-          base:
-            description: The name of the branch to use as the base for the pull request
-            type: string
-        steps:
-            - jq/install
-            - hub/install
-            - checkout
-            - run: 
-                name: Create Pull Request
-                command: |
-                    PULLREQUEST=$(hub pr list -s open -b << parameters.base >> -h $CIRCLE_BRANCH -L1 -f %I)
-                    if [ -z "${PULLREQUEST}" ]; then
-                      hub pr show -f %t" ($CIRCLE_BRANCH -> << parameters.base >>)"%n%n%b $(hub pr list -s closed -b $CIRCLE_BRANCH -L 1 -f %I) > message
-                      hub pull-request -b << parameters.base >> -h $CIRCLECI_USER:$CIRCLE_BRANCH -F message -d
-                    else
-                      hub pr show -f "Merged #"%I": "%t%n%n%b $(hub pr list -s closed -b $CIRCLE_BRANCH -L 1 -f %I) > message
-                      jq -Rs --rawfile body message '{"body":$body}' message > message.json
-                      hub api repos/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/issues/$PULLREQUEST/comments -F body --input message.json
-                    fi
-
+  integration-tests:
+    docker:
+      - image: circleci/node:latest
+    steps:
+      - checkout
+      - hub/install
+      - run: hub --version
 workflows:
-    version_branch:
-        jobs:
-            - echo_envvars:
-                <<: *prod-context
-                <<: *filter_dev
-            - create_github_pr:
-                <<: *prod-context
-                <<: *filter_dev
-                base: master
-                requires:
-                    - echo_envvars
-                    #- prod_approval
-            # - prod_approval:
-            #     type: approval
-            #     requires:
-            #       - echo_envvars
+  integration-tests_prod-release:
+    jobs:
+      - integration-tests:
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /integration-.*/
+          name: integration-tests-dev
+      - integration-tests:
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /master-.*/
+          name: integration-tests-master
+      - orb-tools/dev-promote-prod:
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /master-patch.*/
+          name: dev-promote-patch
+          <<: *orb_name
+          requires:
+            - integration-tests-master
+      - orb-tools/dev-promote-prod:
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /master-minor.*/
+          name: dev-promote-minor
+          <<: *orb_name
+          release: minor
+          requires:
+            - integration-tests-master
+      - orb-tools/dev-promote-prod:
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /master-major.*/
+          name: dev-promote-major
+          <<: *orb_name
+          release: major
+          requires:
+            - integration-tests-master
+  lint_pack-validate_publish-dev:
+    jobs:
+      - orb-tools/lint
+      - orb-tools/pack:
+          requires:
+            - orb-tools/lint
+      - orb-tools/publish-dev:
+          <<: *orb_name
+          requires:
+            - orb-tools/pack
+      - orb-tools/trigger-integration-workflow:
+          filters:
+            branches:
+              ignore: master
+          name: trigger-integration-dev
+          requires:
+            - orb-tools/publish-dev
+          <<: *ssh_fingerprint
+      - orb-tools/trigger-integration-workflow:
+          filters:
+            branches:
+              only: master
+          name: trigger-integration-master
+          requires:
+            - orb-tools/publish-dev
+          <<: *ssh_fingerprint
+          tag: master

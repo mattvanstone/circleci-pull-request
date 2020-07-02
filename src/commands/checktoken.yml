@@ -1,0 +1,18 @@
+description:
+  Check for GITHUB_TOKEN
+steps:
+  - run:
+      name: Install hub
+      command: |
+        #!/bin/bash -eo pipefail
+        if [[ -z "${GITHUB_TOKEN}" ]]; then
+          echo "ERROR: Missing environment variable GITHUB_TOKEN" >&2
+          if [[ -n "You have not stored a GitHub API token. A token is required to create a pull request.
+        " ]]; then
+            echo "You have not stored a GitHub API token. A token is required to create a pull request.
+        " >&2
+          fi
+          
+        else
+          echo "Yes, GitHub is defined!"
+        fi
