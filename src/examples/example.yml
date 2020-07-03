@@ -2,10 +2,10 @@ description: |
   Create a GitHub Pull Request from the current branch to the master branch
 usage:
   version: 2.1
-  orbs:
-    github: mattvanstone/github@dev:alpha
-  workflows:
-    create_pr:
-      jobs:
-        - github/createpr:
-          base: master
+orbs:
+  github: mattvanstone/github@dev:alpha
+workflows:
+  create_pr:
+    jobs:
+      - github/createpr:
+        base: master
