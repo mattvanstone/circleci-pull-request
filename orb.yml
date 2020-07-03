@@ -1,0 +1,75 @@
+commands:
+  checktoken:
+    description: Check for GITHUB_TOKEN
+    steps:
+    - run:
+        command: "#!/bin/bash -eo pipefail\nif [[ -z \"${GITHUB_TOKEN}\" ]]; then\n
+          \ echo \"ERROR: Missing environment variable GITHUB_TOKEN\" >&2\n  if [[
+          -n \"You have not stored a GitHub API token. A token is required to create
+          a pull request.\n\" ]]; then\n    echo \"You have not stored a GitHub API
+          token. A token is required to create a pull request.\n\" >&2\n  fi\n  \nelse\n
+          \ echo \"Yes, GitHub is defined!\"\nfi\n"
+        name: Install hub
+description: |
+  Install and run hub (https://github.com/github/hub).
+  Inspired by circleci/aws-cli orb.
+display:
+  home_url: https://github.com/mattvanstone/circleci-pull-request
+examples:
+  example:
+    description: |
+      Run hub release create command
+    usage:
+      jobs:
+        release:
+          docker:
+          - image: circleci/node:latest
+          steps:
+          - checkout
+          - hub/install
+          - run: timeout 30 hub release create -d -m latest -t release v0.0.1
+      orbs:
+        hub: mattvanstone/hub@dev:alpha
+      version: 2.1
+executors:
+  default:
+    description: |
+      This is a sample executor using Docker and Node. # What is this executor? # Descriptions should be short, simple, and clear.
+    docker:
+    - image: cimg/base:2020.01:<<parameters.tag>>
+    parameters:
+      tag:
+        default: latest
+        description: |
+          Pick a specific circleci/node image variant: https://hub.docker.com/r/circleci/node/tags
+        type: string
+jobs:
+  createpr:
+    description: Create a pull request for the next branch
+    executor: default
+    parameters:
+      base:
+        description: The name of the branch to use as the base for the pull request
+        type: string
+    steps:
+    - checktoken
+    - jq/install
+    - hub/install
+    - checkout
+    - run:
+        command: |
+          PULLREQUEST=$(hub pr list -s open -b << parameters.base >> -h $CIRCLE_BRANCH -L1 -f %I)
+          if [ -z "${PULLREQUEST}" ]; then
+            hub pr show -f %t" ($CIRCLE_BRANCH -> << parameters.base >>)"%n%n%b $(hub pr list -s closed -b $CIRCLE_BRANCH -L 1 -f %I) > message
+            hub pull-request -b << parameters.base >> -h $CIRCLECI_USER:$CIRCLE_BRANCH -F message -d
+          else
+            hub pr show -f "Merged #"%I": "%t%n%n%b $(hub pr list -s closed -b $CIRCLE_BRANCH -L 1 -f %I) > message
+            jq -Rs --rawfile body message '{"body":$body}' message > message.json
+            hub api repos/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/issues/$PULLREQUEST/comments -F body --input message.json
+          fi
+        name: Create Pull Request
+orbs:
+  hub: mattvanstone/hub@0.2.0
+  jq: circleci/jq@1.9.1
+version: 2.1
+
