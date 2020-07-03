@@ -1,7 +1,8 @@
 version: 2.1
 orbs:
   orb-tools: circleci/orb-tools@8.27.4
-  hub: 'mattvanstone/github@dev:alpha'
+  hub: 'mattvanstone/hub@dev:alpha'
+  github: 'mattvanstone/github@dev:alpha'
 aliases:
   - &orb_name
     orb-name: mattvanstone/github
