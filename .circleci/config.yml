@@ -21,8 +21,6 @@ workflows:
     jobs:
       - github/createpr:
           base: master
-          requires:
-            - echo_envvars:
           filters:
             branches:
               ignore: /.*/

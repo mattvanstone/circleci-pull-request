@@ -9,5 +9,3 @@ usage:
       jobs:
         - github/createpr:
           base: master
-          requires:
-            - echo_envvars
