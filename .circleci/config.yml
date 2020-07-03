@@ -19,7 +19,10 @@ jobs:
 workflows:
   integration-tests_prod-release:
     jobs:
-      - integration-tests:
+      - github/createpr:
+          base: master
+          requires:
+            - echo_envvars:
           filters:
             branches:
               ignore: /.*/
