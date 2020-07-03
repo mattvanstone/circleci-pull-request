@@ -2,7 +2,7 @@ description:
   Create a pull request for the next branch
 executor:
   name: default
-  tag: 2020.01
+  tag: "2020.01"
 parameters:
   base:
     description: The name of the branch to use as the base for the pull request
